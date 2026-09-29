@@ -28,12 +28,38 @@ jobs:
           import os, re, requests
           token = os.environ['BAIDU_TOKEN']
           site = 'jingsxians.cn'
-          sitemap_url = 'https://jingsxians.cn/sitemap.xml'
-          resp = requests.get(sitemap_url)
-          urls = re.findall(r'<loc>(.*?)</loc>', resp.text)
+
+          all_urls = set()
+
+          # 抓文章列表页
+          list_url = 'https://jingsxians.cn/articles.html'
+          resp = requests.get(list_url)
+          html = resp.text
+          found = re.findall(r'href="(https://jingsxians\.cn/articles/[^"]+\.html)"', html)
+          all_urls.update(found)
+
+          # 抓首页和其他主要页面
+          main_pages = [
+              'https://jingsxians.cn/',
+              'https://jingsxians.cn/start.html',
+              'https://jingsxians.cn/ask.html',
+              'https://jingsxians.cn/tradition-research.html',
+              'https://jingsxians.cn/modern-research.html',
+              'https://jingsxians.cn/posts.html',
+              'https://jingsxians.cn/research.html',
+              'https://jingsxians.cn/research-results.html',
+              'https://jingsxians.cn/data.html',
+          ]
+          all_urls.update(main_pages)
+
+          urls = sorted(all_urls)
+
           if not urls:
               print('No URLs found.')
               exit(0)
+
+          print(f'Total URLs: {len(urls)}')
+
           api = f'http://data.zz.baidu.com/urls?site={site}&token={token}'
           for i in range(0, len(urls), 200):
               batch = urls[i:i+200]
