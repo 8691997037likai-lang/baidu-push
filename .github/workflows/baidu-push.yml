@@ -1,0 +1,43 @@
+name: Baidu Push
+
+on:
+  schedule:
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Push to Baidu
+        env:
+          BAIDU_TOKEN: ${{ secrets.BAIDU_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os, re, requests
+          token = os.environ['BAIDU_TOKEN']
+          site = 'jingsxians.cn'
+          sitemap_url = 'https://jingsxians.cn/sitemap.xml'
+          resp = requests.get(sitemap_url)
+          urls = re.findall(r'<loc>(.*?)</loc>', resp.text)
+          if not urls:
+              print('No URLs found.')
+              exit(0)
+          api = f'http://data.zz.baidu.com/urls?site={site}&token={token}'
+          for i in range(0, len(urls), 200):
+              batch = urls[i:i+200]
+              data = '\n'.join(batch)
+              r = requests.post(api, data=data.encode('utf-8'), headers={'Content-Type': 'text/plain'})
+              print(f'Batch {i//200 + 1}: {r.text}')
+          PY
